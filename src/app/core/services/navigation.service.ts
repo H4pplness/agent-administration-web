@@ -15,9 +15,8 @@ export class NavigationService {
       label: 'Agents',
       icon: 'robot',
       children: [
-        { id: 'agents-list', label: 'Tất cả Agents', icon: 'list', route: '/agents' },
-        { id: 'agents-create', label: 'Tạo Agent', icon: 'plus', route: '/agents/create' },
-        { id: 'agents-templates', label: 'Templates', icon: 'template', route: '/agents/templates' },
+        { id: 'agents-list', label: 'Danh mục Agent', icon: 'list', route: '/agents' },
+        { id: 'agents-multi', label: 'Multi-agent', icon: 'workflow', route: '/agents/multi' },
       ],
     },
     {

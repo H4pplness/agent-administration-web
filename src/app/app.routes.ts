@@ -16,15 +16,10 @@ export const routes: Routes = [
       {
         path: 'agents',
         loadComponent: () =>
-          import('./pages/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent),
+          import('./pages/agents/agent-list.component').then(m => m.AgentListComponent),
       },
       {
-        path: 'agents/create',
-        loadComponent: () =>
-          import('./pages/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent),
-      },
-      {
-        path: 'agents/templates',
+        path: 'agents/multi',
         loadComponent: () =>
           import('./pages/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent),
       },

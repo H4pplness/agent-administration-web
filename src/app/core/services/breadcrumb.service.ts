@@ -10,9 +10,8 @@ export class BreadcrumbService {
   private readonly routeLabelMap: Record<string, string> = {
     '': 'Trang chủ',
     'dashboard': 'Dashboard',
-    'agents': 'Agents',
-    'create': 'Tạo mới',
-    'templates': 'Templates',
+    'agents': 'Danh mục Agent',
+    'multi': 'Multi-agent',
     'workflows': 'Workflows',
     'knowledge-base': 'Knowledge Base',
     'documents': 'Tài liệu',
