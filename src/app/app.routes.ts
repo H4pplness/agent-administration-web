@@ -45,6 +45,21 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent),
       },
+      {
+        path: 'knowledge-base/skills',
+        loadComponent: () =>
+          import('./pages/skills/skills-list.component').then(m => m.SkillsListComponent),
+      },
+      {
+        path: 'knowledge-base/skills/new',
+        loadComponent: () =>
+          import('./pages/skills/skill-editor.component').then(m => m.SkillEditorComponent),
+      },
+      {
+        path: 'knowledge-base/skills/:id/edit',
+        loadComponent: () =>
+          import('./pages/skills/skill-editor.component').then(m => m.SkillEditorComponent),
+      },
       // Monitoring
       {
         path: 'monitoring/logs',

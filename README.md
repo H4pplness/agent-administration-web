@@ -95,13 +95,15 @@ src/
     │   │   ├── nav-item.model.ts      # Interface NavItem
     │   │   ├── breadcrumb.model.ts    # Interface Breadcrumb
     │   │   ├── agent.model.ts         # Interface Agent, AgentModel, ChatMessage
-    │   │   └── resource.model.ts      # Interface Resource, HttpSchema, AgentSchema
+    │   │   ├── resource.model.ts      # Interface Resource, HttpSchema, AgentSchema
+    │   │   └── skill.model.ts         # Interface Skill, SkillParameter, SkillTestResult
     │   └── services/
     │       ├── navigation.service.ts  # Dữ liệu nav items + active state
     │       ├── breadcrumb.service.ts  # Auto-generate breadcrumb từ route
     │       ├── agent.service.ts       # CRUD agents + chat API (mock)
     │       ├── resource.service.ts    # CRUD resources + system prompt API (mock)
-    │       └── toast.service.ts       # Global toast notifications
+    │       ├── toast.service.ts       # Global toast notifications
+    │       └── skill.service.ts       # CRUD skills + test API (mock)
     │
     ├── shared/
     │   └── components/
@@ -133,6 +135,9 @@ src/
     │   │   ├── tab-system-prompt.component.ts # Tab: System Prompt preview
     │   │   ├── tab-chat.component.ts          # Tab: Test Chat
     │   │   └── delete-confirm-modal.component.ts # Confirmation modal
+    │   ├── skills/
+    │   │   ├── skills-list.component.ts       # Grid danh sách skills + search/filter
+    │   │   └── skill-editor.component.ts      # Editor 2 cột: builder + sandbox
     │   ├── agents/
     │   │   └── agent-list.component.ts  # Legacy list view
     │   ├── dashboard/
@@ -301,6 +306,72 @@ Màn hình quản lý Agent - master-detail layout 2 cột với 4 tabs chi ti�
 
 ---
 
+#### `SkillsListComponent` ⭐
+Path: [src/app/pages/skills/skills-list.component.ts](src/app/pages/skills/skills-list.component.ts)
+
+Màn hình danh sách Skills - grid 3 cột với search/filter/sort và status bar:
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  🛠️ SKILLS MANAGEMENT                      [ + Tạo Skill ]  │
+├─────────────────────────────────────────────────────────────┤
+│  🔍 Tìm kiếm...    [ Lọc: Tất cả ▼ ]  [ Sắp xếp ▼ ]       │
+│  📊 🟢 12 Hoạt động | 🟡 2 Bản nháp | 🔴 1 Lỗi             │
+│                                                             │
+│  [ 🌐 Google Search ] [ 🐍 Python Exec ] [ 📧 Gmail Send ] │
+│  [ 📊 SQL DB        ] [ 🛒 Shopify     ] [ ➕ Thêm mới   ] │
+└─────────────────────────────────────────────────────────────┘
+```
+
+**Tính năng:**
+- Grid 3 cột responsive (1 → 2 → 3 cột theo breakpoint)
+- Tìm kiếm theo tên và mô tả (reactive)
+- Lọc theo trạng thái: Tất cả / Hoạt động / Bản nháp / Lỗi
+- Sắp xếp: Mới nhất / Cũ nhất / Tên A-Z / Sử dụng nhiều
+- Status bar tổng hợp số lượng theo từng trạng thái
+- Card mỗi skill: icon, tên, mô tả, loại, số lần sử dụng, nút edit/xóa
+- Modal xác nhận xóa
+
+---
+
+#### `SkillEditorComponent` ⭐
+Path: [src/app/pages/skills/skill-editor.component.ts](src/app/pages/skills/skill-editor.component.ts)
+
+Màn hình tạo mới / chỉnh sửa Skill - split 2 cột:
+
+```
+┌──────────────────────────────┬──────────────────────────────┐
+│  🛠️ CẤU HÌNH LOGIC (BUILDER) │  🧪 TRÌNH KIỂM THỬ (SANDBOX) │
+│                              │                              │
+│  1. Mô tả cho AI             │  JSON Input                  │
+│  2. Cấu hình API / Python    │  [ ▶ Chạy thử Skill ]        │
+│  3. Tham số đầu vào          │  📝 Kết quả phản hồi         │
+│     (bảng inline edit)       │  💡 Nhận xét của AI          │
+└──────────────────────────────┴──────────────────────────────┘
+```
+
+**Tính năng:**
+- Hỗ trợ 3 loại skill: REST API, Python Code, Database
+- Icon picker theo loại skill
+- Cấu hình API: method (GET/POST/PUT/PATCH/DELETE), URL, auth (None/API Key/Bearer/Basic)
+- Editor mã Python với textarea font mono
+- Bảng tham số inline: tên, loại, mô tả, bắt buộc
+- Sandbox kiểm thử: nhập JSON → chạy → xem status/body/nhận xét AI
+- Lưu tạo mới redirect về trang edit (không tạo lại)
+
+**API Mapping (Skills):**
+
+| Hành động | Method | Endpoint |
+|-----------|--------|----------|
+| Load skills | GET | `/v1/skills` |
+| Load skill | GET | `/v1/skills/{id}` |
+| Tạo skill | POST | `/v1/skills` |
+| Cập nhật skill | PUT | `/v1/skills/{id}` |
+| Xóa skill | DELETE | `/v1/skills/{id}` |
+| Kiểm thử skill | POST | `/v1/skills/{id}/test` |
+
+---
+
 #### `DashboardComponent`
 Path: [src/app/pages/dashboard/dashboard.component.ts](src/app/pages/dashboard/dashboard.component.ts)
 
@@ -349,6 +420,18 @@ toastSvc.success('Saved')                // Toast xanh, tự ẩn sau 2s
 toastSvc.error('Failed to update')       // Toast đỏ, tự ẩn sau 4s
 ```
 
+### `SkillService`
+Path: [src/app/core/services/skill.service.ts](src/app/core/services/skill.service.ts)
+
+```typescript
+skillSvc.getSkills()              // Observable<Skill[]>
+skillSvc.getSkill(id)             // Observable<Skill>
+skillSvc.createSkill(data)        // Observable<Skill>
+skillSvc.updateSkill(id, data)    // Observable<Skill>
+skillSvc.deleteSkill(id)          // Observable<void>
+skillSvc.testSkill(id, input)     // Observable<SkillTestResult>
+```
+
 ### `NavigationService`
 Path: [src/app/core/services/navigation.service.ts](src/app/core/services/navigation.service.ts)
 
@@ -376,7 +459,8 @@ Dashboard                    → /dashboard
 │
 ├── Knowledge Base
 │   ├── Tài liệu             → /knowledge-base/documents
-│   └── Data Sources         → /knowledge-base/sources
+│   ├── Data Sources         → /knowledge-base/sources
+│   └── Skills               → /knowledge-base/skills  (Skills Management ⭐)
 │
 ├── Monitoring
 │   ├── Logs                 → /monitoring/logs

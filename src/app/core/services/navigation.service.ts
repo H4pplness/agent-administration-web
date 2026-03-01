@@ -35,6 +35,7 @@ export class NavigationService {
       children: [
         { id: 'kb-documents', label: 'Tài liệu', icon: 'document', route: '/knowledge-base/documents' },
         { id: 'kb-sources', label: 'Data Sources', icon: 'database', route: '/knowledge-base/sources' },
+        { id: 'kb-skills', label: 'Skills', icon: 'key', route: '/knowledge-base/skills' },
       ],
     },
     {
