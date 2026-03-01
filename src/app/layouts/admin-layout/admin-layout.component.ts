@@ -18,8 +18,10 @@ import { HeaderComponent } from '../../shared/components/organisms/header/header
         <app-header />
 
         <!-- Content -->
-        <main class="flex-1 overflow-y-auto p-6 dark:bg-gray-900 dark:text-gray-100">
-          <router-outlet />
+        <main class="flex-1 min-h-0 overflow-hidden dark:bg-gray-900 dark:text-gray-100">
+          <div class="h-full">
+            <router-outlet />
+          </div>
         </main>
       </div>
     </div>

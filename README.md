@@ -77,11 +77,11 @@ nhỏ nhất   atoms     phức tạp   hoàn chỉnh  hoàn chỉnh
 
 | Cấp độ | Mô tả | Ví dụ |
 |--------|-------|-------|
-| **Atoms** | Phần tử UI nhỏ nhất, không thể chia nhỏ hơn | Icon, Badge |
+| **Atoms** | Phần tử UI nhỏ nhất, không thể chia nhỏ hơn | Icon, Badge, Toast |
 | **Molecules** | Kết hợp các atoms thành đơn vị có ý nghĩa | NavItem, Breadcrumb, AppLogo |
 | **Organisms** | Nhóm molecules tạo thành section giao diện | Sidebar, Header |
 | **Layouts** | Bố cục tổng thể, chứa organisms | AdminLayout |
-| **Pages** | Màn hình cụ thể, được load vào layout | Dashboard, ComingSoon |
+| **Pages** | Màn hình cụ thể, được load vào layout | Dashboard, AgentHub, ComingSoon |
 
 ---
 
@@ -93,21 +93,29 @@ src/
     ├── core/                          # Logic nghiệp vụ cốt lõi
     │   ├── models/
     │   │   ├── nav-item.model.ts      # Interface NavItem
-    │   │   └── breadcrumb.model.ts    # Interface Breadcrumb
+    │   │   ├── breadcrumb.model.ts    # Interface Breadcrumb
+    │   │   ├── agent.model.ts         # Interface Agent, AgentModel, ChatMessage
+    │   │   └── resource.model.ts      # Interface Resource, HttpSchema, AgentSchema
     │   └── services/
     │       ├── navigation.service.ts  # Dữ liệu nav items + active state
-    │       └── breadcrumb.service.ts  # Auto-generate breadcrumb từ route
+    │       ├── breadcrumb.service.ts  # Auto-generate breadcrumb từ route
+    │       ├── agent.service.ts       # CRUD agents + chat API (mock)
+    │       ├── resource.service.ts    # CRUD resources + system prompt API (mock)
+    │       └── toast.service.ts       # Global toast notifications
     │
     ├── shared/
     │   └── components/
     │       ├── atoms/
     │       │   ├── icon/              # SVG icon wrapper (Heroicons)
-    │       │   └── badge/             # Status badge
+    │       │   ├── badge/             # Status badge
+    │       │   └── toast/             # Toast notification container
     │       ├── molecules/
     │       │   ├── app-logo/          # Logo + tên ứng dụng
     │       │   ├── nav-item/          # Nav item với flyout submenu
     │       │   ├── nav-sub-item/      # Sub-menu item
-    │       │   └── breadcrumb/        # Breadcrumb trail
+    │       │   ├── breadcrumb/        # Breadcrumb trail
+    │       │   ├── pagination/        # Pagination component
+    │       │   └── search-panel/      # Search filter panel
     │       └── organisms/
     │           ├── sidebar/           # Sidebar hoàn chỉnh
     │           └── header/            # Header hoàn chỉnh
@@ -116,8 +124,21 @@ src/
     │   └── admin-layout/              # Bố cục admin (sidebar + header + content)
     │
     ├── pages/
-    │   ├── dashboard/                 # Trang Dashboard
-    │   └── coming-soon/               # Placeholder cho tính năng chưa phát triển
+    │   ├── agent-hub/                 # Agent Management Hub (tính năng chính)
+    │   │   ├── agent-hub.component.ts         # Main orchestrator page
+    │   │   ├── agent-sidebar.component.ts     # Agent list sidebar (trái)
+    │   │   ├── agent-detail.component.ts      # Detail panel với 4 tabs (phải)
+    │   │   ├── tab-general.component.ts       # Tab: General info + inline edit
+    │   │   ├── tab-resources.component.ts     # Tab: Tools & Resources
+    │   │   ├── tab-system-prompt.component.ts # Tab: System Prompt preview
+    │   │   ├── tab-chat.component.ts          # Tab: Test Chat
+    │   │   └── delete-confirm-modal.component.ts # Confirmation modal
+    │   ├── agents/
+    │   │   └── agent-list.component.ts  # Legacy list view
+    │   ├── dashboard/
+    │   │   └── dashboard.component.ts
+    │   └── coming-soon/
+    │       └── coming-soon.component.ts
     │
     ├── app.component.ts               # Root component
     ├── app.config.ts                  # App configuration (providers)
@@ -146,7 +167,7 @@ Wrapper cho SVG icons (Heroicons). Hỗ trợ 4 kích thước.
 | `size` | `'xs' \| 'sm' \| 'md' \| 'lg'` | `'md'` | Kích thước |
 
 **Icons có sẵn:**
-`dashboard`, `robot`, `workflow`, `book`, `chart`, `settings`, `list`, `plus`, `template`, `document`, `database`, `terminal`, `analytics`, `key`, `users`, `chevron-right`, `chevron-down`, `home`, `bell`, `user-circle`
+`dashboard`, `robot`, `workflow`, `book`, `chart`, `settings`, `list`, `plus`, `template`, `document`, `database`, `terminal`, `analytics`, `key`, `users`, `chevron-right`, `chevron-down`, `home`, `bell`, `user-circle`, `trash`, `x-mark`, `check`, `globe`, `send`, `arrow-path`, `chat-bubble`, `document-text`, `spinner`
 
 ---
 
@@ -155,17 +176,18 @@ Path: [src/app/shared/components/atoms/badge/badge.component.ts](src/app/shared/
 
 Badge nhỏ dùng để hiển thị trạng thái.
 
-```html
-<app-badge label="Đang phát triển" variant="coming-soon" />
-<app-badge label="Hoạt động" variant="success" />
-```
-
-| Input | Type | Mặc định | Mô tả |
-|-------|------|----------|-------|
-| `label` | `string` | *(required)* | Nội dung badge |
-| `variant` | `BadgeVariant` | `'default'` | Màu sắc |
-
 **Variants:** `default`, `success`, `warning`, `danger`, `info`, `coming-soon`
+
+---
+
+#### `ToastContainerComponent`
+Path: [src/app/shared/components/atoms/toast/toast.component.ts](src/app/shared/components/atoms/toast/toast.component.ts)
+
+Container hiển thị stack toast notifications ở góc dưới phải màn hình. Tự động đọc từ `ToastService`.
+
+```html
+<app-toast-container />
+```
 
 ---
 
@@ -176,10 +198,6 @@ Path: [src/app/shared/components/molecules/app-logo/app-logo.component.ts](src/a
 
 Logo ứng dụng gồm icon robot + tên "AI Agent Platform". Dùng trong Sidebar.
 
-```html
-<app-logo />
-```
-
 ---
 
 #### `NavItemComponent`
@@ -187,41 +205,12 @@ Path: [src/app/shared/components/molecules/nav-item/nav-item.component.ts](src/a
 
 Mục điều hướng trong sidebar. Nếu `item.children` tồn tại, tự động hiển thị **flyout submenu** khi hover.
 
-```html
-<app-nav-item [item]="navItem" />
-```
-
-| Input | Type | Mô tả |
-|-------|------|-------|
-| `item` | `NavItem` | Dữ liệu nav item |
-
-**Flyout behavior:** Dùng thuần CSS (`:host:hover .flyout-menu` + `.flyout-menu:hover`), không cần JavaScript. Animation: `opacity` + `translateX` trong 150ms.
-
----
-
-#### `NavSubItemComponent`
-Path: [src/app/shared/components/molecules/nav-sub-item/nav-sub-item.component.ts](src/app/shared/components/molecules/nav-sub-item/nav-sub-item.component.ts)
-
-Mục điều hướng cấp 2, hiển thị trong flyout panel.
-
-```html
-<app-nav-sub-item [item]="childNavItem" />
-```
-
-Tự động highlight khi route active nhờ `routerLinkActive`.
-
 ---
 
 #### `BreadcrumbComponent`
 Path: [src/app/shared/components/molecules/breadcrumb/breadcrumb.component.ts](src/app/shared/components/molecules/breadcrumb/breadcrumb.component.ts)
 
-Thanh điều hướng dạng `Home > Agents > Tạo Agent`. Tự động cập nhật khi route thay đổi thông qua `BreadcrumbService`.
-
-```html
-<app-breadcrumb />
-```
-
-Không nhận input — tự lấy dữ liệu từ `BreadcrumbService`.
+Thanh điều hướng dạng `Home > Agents`. Tự động cập nhật khi route thay đổi.
 
 ---
 
@@ -230,23 +219,14 @@ Không nhận input — tự lấy dữ liệu từ `BreadcrumbService`.
 #### `SidebarComponent`
 Path: [src/app/shared/components/organisms/sidebar/sidebar.component.ts](src/app/shared/components/organisms/sidebar/sidebar.component.ts)
 
-Sidebar hoàn chỉnh gồm 3 phần:
-- **Header**: Logo ứng dụng
-- **Nav**: Danh sách `NavItemComponent`, lấy dữ liệu từ `NavigationService`
-- **Footer**: Thông tin user
-
-Kích thước cố định: `240px (w-60)`, nền tối `#1e2433`.
+Sidebar hoàn chỉnh gồm Logo + Nav + Footer user. Kích thước cố định `240px`, nền tối `#1e2433`.
 
 ---
 
 #### `HeaderComponent`
 Path: [src/app/shared/components/organisms/header/header.component.ts](src/app/shared/components/organisms/header/header.component.ts)
 
-Header ngang phía trên gồm:
-- **Trái**: `BreadcrumbComponent`
-- **Phải**: Nút thông báo + avatar user
-
-Chiều cao cố định: `64px (h-16)`.
+Header ngang phía trên gồm breadcrumb + nút thông báo + avatar user. Chiều cao cố định `64px`.
 
 ---
 
@@ -255,104 +235,140 @@ Chiều cao cố định: `64px (h-16)`.
 #### `AdminLayoutComponent`
 Path: [src/app/layouts/admin-layout/admin-layout.component.ts](src/app/layouts/admin-layout/admin-layout.component.ts)
 
-Bố cục tổng thể của admin UI. Kết hợp Sidebar + Header + `<router-outlet>`.
-
-```
-┌── AdminLayout ─────────────────────────────┐
-│  ┌─ Sidebar ─┐  ┌─── Header ──────────────┐│
-│  │           │  │  Breadcrumb  [Bell][User]││
-│  │  Nav menu │  └─────────────────────────┘│
-│  │           │  ┌─── Content ─────────────┐│
-│  │           │  │  <router-outlet>        ││
-│  │           │  │                         ││
-│  │  [Footer] │  └─────────────────────────┘│
-│  └───────────┘                              │
-└────────────────────────────────────────────┘
-```
+Bố cục tổng thể: Sidebar + Header + `<router-outlet>`. Content area dùng `overflow-hidden` để cho phép các page con tự quản lý scroll và padding.
 
 ---
 
 ### Pages
 
+#### `AgentHubComponent` ⭐
+Path: [src/app/pages/agent-hub/agent-hub.component.ts](src/app/pages/agent-hub/agent-hub.component.ts)
+
+Màn hình quản lý Agent - master-detail layout 2 cột với 4 tabs chi tiết:
+
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│  Agent Hub                                              [+ New Agent]   │
+├──────────────┬──────────────────────────────────────────────────────────┤
+│              │                                                          │
+│  AGENTS      │  [General] [Tools & Resources] [System Prompt] [Chat]   │
+│  ──────────  │  ──────────────────────────────────────────────────────  │
+│  > Agent A   │                                                          │
+│    Agent B   │              (Tab content)                               │
+│    Agent C   │                                                          │
+│              │                                                          │
+└──────────────┴──────────────────────────────────────────────────────────┘
+```
+
+**Sub-components:**
+
+| Component | File | Mô tả |
+|-----------|------|-------|
+| `AgentSidebarComponent` | `agent-sidebar.component.ts` | Sidebar trái: list agents, inline rename (double-click), tạo mới |
+| `AgentDetailComponent` | `agent-detail.component.ts` | Panel phải: 4-tab navigation |
+| `TabGeneralComponent` | `tab-general.component.ts` | Tab General: inline edit Name, Model, Context + Delete |
+| `TabResourcesComponent` | `tab-resources.component.ts` | Tab Tools & Resources: HTTP resources + Agent resources |
+| `TabSystemPromptComponent` | `tab-system-prompt.component.ts` | Tab System Prompt: preview + Rebuild & Save |
+| `TabChatComponent` | `tab-chat.component.ts` | Tab Chat: test agent với full chat interface |
+| `DeleteConfirmModalComponent` | `delete-confirm-modal.component.ts` | Modal xác nhận xóa (shared) |
+
+**Tính năng Inline Edit:**
+- Double-click vào text → chuyển sang edit mode ngay tại chỗ
+- `Enter` / nút `Save ✓` → validate + gọi API + đóng edit mode
+- `Escape` / nút `Cancel` → hủy, khôi phục giá trị cũ
+- Validation: viền đỏ + error message khi field không hợp lệ
+- Saving state: spinner trên nút Save khi đang gọi API
+
+**API Mapping:**
+
+| Hành động | Method | Endpoint |
+|-----------|--------|----------|
+| Load agents | GET | `/v1/agents` |
+| Load agent | GET | `/v1/agents/{id}` |
+| Tạo agent | POST | `/v1/agents` |
+| Cập nhật agent | PUT | `/v1/agents/{id}` |
+| Xóa agent | DELETE | `/v1/agents/{id}` |
+| Load models | GET | `/v1/models` |
+| Load resources | GET | `/v1/resources/agent/{agentId}` |
+| Tạo resource | POST | `/v1/resources` |
+| Cập nhật resource | PUT | `/v1/resources/{id}` |
+| Xóa resource | DELETE | `/v1/resources/{id}` |
+| Preview system prompt | GET | `/v1/resources/agent/{agentId}/prompt` |
+| Rebuild & Save prompt | POST | `/v1/resources/agent/{agentId}/save` |
+| Chat với agent | POST | `/v1/agents/chat` |
+
+> **Mock data:** Services hiện dùng in-memory mock data (Observable + delay). Thay bằng `HttpClient` calls khi backend sẵn sàng bằng cách uncomment HTTP code trong service files.
+
+---
+
 #### `DashboardComponent`
 Path: [src/app/pages/dashboard/dashboard.component.ts](src/app/pages/dashboard/dashboard.component.ts)
 
-Trang tổng quan hiển thị:
-- 4 stat cards (Agents, Workflows, Tài liệu KB, API Calls)
-- Quick actions (Tạo Agent, Tạo Workflow, Thêm tài liệu, Xem Logs)
-- Welcome banner với CTA
+Trang tổng quan: 4 stat cards, quick actions, welcome banner.
+
+---
 
 #### `ComingSoonComponent`
 Path: [src/app/pages/coming-soon/coming-soon.component.ts](src/app/pages/coming-soon/coming-soon.component.ts)
 
-Placeholder page dùng cho tất cả tính năng chưa phát triển. Hiển thị icon, tiêu đề, mô tả và nút quay về Dashboard.
+Placeholder page dùng cho tất cả tính năng chưa phát triển.
 
 ---
 
 ## Core Services
+
+### `AgentService`
+Path: [src/app/core/services/agent.service.ts](src/app/core/services/agent.service.ts)
+
+```typescript
+agentSvc.getAgents()                        // Observable<Agent[]>
+agentSvc.createAgent({ name })              // Observable<Agent>
+agentSvc.updateAgent(id, { name, modelId }) // Observable<Agent>
+agentSvc.deleteAgent(id)                    // Observable<void>
+agentSvc.getModels()                        // Observable<AgentModel[]>
+agentSvc.chat({ agentId, messages })        // Observable<ChatResponse>
+```
+
+### `ResourceService`
+Path: [src/app/core/services/resource.service.ts](src/app/core/services/resource.service.ts)
+
+```typescript
+resourceSvc.getByAgent(agentId)    // Observable<Record<type, Resource[]>>
+resourceSvc.create(data)           // Observable<Resource>
+resourceSvc.update(id, data)       // Observable<Resource>
+resourceSvc.delete(id)             // Observable<void>
+resourceSvc.getPrompt(agentId)     // Observable<{ prompt: string }>
+resourceSvc.savePrompt(agentId)    // Observable<{ prompt: string }>
+```
+
+### `ToastService`
+Path: [src/app/core/services/toast.service.ts](src/app/core/services/toast.service.ts)
+
+```typescript
+toastSvc.success('Saved')                // Toast xanh, tự ẩn sau 2s
+toastSvc.error('Failed to update')       // Toast đỏ, tự ẩn sau 4s
+```
 
 ### `NavigationService`
 Path: [src/app/core/services/navigation.service.ts](src/app/core/services/navigation.service.ts)
 
 Quản lý dữ liệu navigation items và trạng thái active.
 
-```typescript
-// Lấy danh sách nav items
-navService.navItems  // NavItem[]
-
-// Đặt item đang active
-navService.setActive('agents')
-
-// Signal theo dõi item active
-navService.activeItemId()  // string
-```
-
-**Thêm nav item mới:**
-```typescript
-// Trong NavigationService.navItems
-{
-  id: 'my-feature',
-  label: 'Tính năng mới',
-  icon: 'dashboard',    // Tên icon đã có trong IconComponent
-  children: [
-    { id: 'my-feature-list', label: 'Danh sách', icon: 'list', route: '/my-feature' },
-  ],
-},
-```
-
----
-
 ### `BreadcrumbService`
 Path: [src/app/core/services/breadcrumb.service.ts](src/app/core/services/breadcrumb.service.ts)
 
 Tự động tạo breadcrumb bằng cách lắng nghe `NavigationEnd` events của Angular Router.
 
-```typescript
-// Signal chứa breadcrumb hiện tại
-breadcrumbService.breadcrumbs()
-// => [{ label: 'Agents', route: '/agents' }, { label: 'Tạo Agent', route: '/agents/create' }]
-```
-
-**Thêm label cho route mới:**
-```typescript
-// Trong BreadcrumbService.routeLabelMap
-'my-feature': 'Tính năng mới',
-'sub-page': 'Trang con',
-```
-
 ---
 
 ## Navigation
-
-Cấu trúc navigation được định nghĩa trong `NavigationService`:
 
 ```
 Dashboard                    → /dashboard
 │
 ├── Agents
-│   ├── Tất cả Agents        → /agents
-│   ├── Tạo Agent            → /agents/create
-│   └── Templates            → /agents/templates
+│   ├── Danh mục Agent       → /agents  (Agent Hub ⭐)
+│   └── Multi-agent          → /agents/multi
 │
 ├── Workflows
 │   ├── Tất cả Workflows     → /workflows
@@ -439,11 +455,11 @@ Mở [src/app/core/services/navigation.service.ts](src/app/core/services/navigat
 
 ```typescript
 {
-  id: 'analytics',
-  label: 'Analytics',
-  icon: 'chart',
+  id: 'my-feature',
+  label: 'Tính năng mới',
+  icon: 'dashboard',
   children: [
-    { id: 'analytics-overview', label: 'Tổng quan', icon: 'dashboard', route: '/analytics' },
+    { id: 'my-feature-list', label: 'Danh sách', icon: 'list', route: '/my-feature' },
   ],
 },
 ```
@@ -453,27 +469,32 @@ Mở [src/app/core/services/navigation.service.ts](src/app/core/services/navigat
 Mở [src/app/core/services/breadcrumb.service.ts](src/app/core/services/breadcrumb.service.ts) và thêm vào `routeLabelMap`:
 
 ```typescript
-'analytics': 'Analytics',
-'overview': 'Tổng quan',
+'my-feature': 'Tính năng mới',
 ```
 
 ### Bước 3: Tạo page component
 
 ```bash
-ng generate component pages/analytics
+ng generate component pages/my-feature
 ```
 
-Hoặc tạo thủ công tại `src/app/pages/analytics/analytics.component.ts`.
+Lưu ý: Page component cần tự quản lý padding và scroll (vì `AdminLayoutComponent` dùng `overflow-hidden`). Thêm vào root element của template:
+
+```html
+<div class="p-6 overflow-y-auto h-full">
+  ...
+</div>
+```
 
 ### Bước 4: Thêm route
 
-Mở [src/app/app.routes.ts](src/app/app.routes.ts) và thêm route mới:
+Mở [src/app/app.routes.ts](src/app/app.routes.ts):
 
 ```typescript
 {
-  path: 'analytics',
+  path: 'my-feature',
   loadComponent: () =>
-    import('./pages/analytics/analytics.component').then(m => m.AnalyticsComponent),
+    import('./pages/my-feature/my-feature.component').then(m => m.MyFeatureComponent),
 },
 ```
 
@@ -488,6 +509,26 @@ const ICONS: Record<string, string> = {
 };
 ```
 
+### Kết nối backend thực
+
+Để thay thế mock data bằng API thực:
+
+1. Thêm `provideHttpClient()` vào [src/app/app.config.ts](src/app/app.config.ts):
+
+```typescript
+import { provideHttpClient } from '@angular/common/http';
+
+export const appConfig: ApplicationConfig = {
+  providers: [
+    provideZoneChangeDetection({ eventCoalescing: true }),
+    provideRouter(routes, withComponentInputBinding(), withViewTransitions()),
+    provideHttpClient(),
+  ],
+};
+```
+
+2. Inject `HttpClient` và thay thế `of(mock).pipe(delay())` bằng HTTP calls trong `AgentService` và `ResourceService`.
+
 ---
 
 ## Màu sắc & Theming
@@ -501,8 +542,8 @@ Màu sắc được định nghĩa trong [tailwind.config.js](tailwind.config.js
 | `sidebar-active` | `#3b4a6b` | Active state nav item |
 | `sidebar-text` | `#a0aec0` | Màu chữ trong sidebar |
 | `sidebar-border` | `#2d3748` | Border sidebar |
-| `brand-500` | `#3b82f6` | Màu primary (xanh dương) |
-| `brand-600` | `#2563eb` | Hover primary |
+| `brand-500` | `#6366f1` | Màu primary (indigo) |
+| `brand-600` | Darker | Hover primary |
 
 ---
 

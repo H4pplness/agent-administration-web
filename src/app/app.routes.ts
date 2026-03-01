@@ -16,7 +16,7 @@ export const routes: Routes = [
       {
         path: 'agents',
         loadComponent: () =>
-          import('./pages/agents/agent-list.component').then(m => m.AgentListComponent),
+          import('./pages/agent-hub/agent-hub.component').then(m => m.AgentHubComponent),
       },
       {
         path: 'agents/multi',

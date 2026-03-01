@@ -6,7 +6,7 @@ import { RouterLink } from '@angular/router';
   standalone: true,
   imports: [RouterLink],
   template: `
-    <div class="flex flex-col items-center justify-center min-h-[60vh] text-center px-4">
+    <div class="flex flex-col items-center justify-center h-full min-h-[60vh] text-center px-4 overflow-y-auto p-6">
       <!-- Icon -->
       <div class="w-24 h-24 rounded-full bg-brand-50 flex items-center justify-center mb-6">
         <svg class="w-12 h-12 text-brand-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">

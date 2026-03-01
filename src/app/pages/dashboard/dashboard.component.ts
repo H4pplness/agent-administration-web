@@ -15,7 +15,7 @@ interface StatCard {
   standalone: true,
   imports: [RouterLink],
   template: `
-    <div class="space-y-6">
+    <div class="p-6 overflow-y-auto h-full space-y-6">
       <!-- Page header -->
       <div>
         <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
