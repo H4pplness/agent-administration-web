@@ -4,8 +4,8 @@ import { DeleteConfirmModalComponent } from './delete-confirm-modal.component';
 
 interface AgentFormState {
   name: string;
-  modelId: string | null;
-  context: string;
+  modelId: number | null;
+  description: string;
 }
 
 @Component({
@@ -94,11 +94,11 @@ interface AgentFormState {
               <select
                 class="mt-1.5 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
                 [value]="form().modelId ?? ''"
-                (change)="patchForm({ modelId: ($any($event.target).value || null) })"
+                (change)="patchForm({ modelId: toNullableNumber($any($event.target).value) })"
               >
                 <option value="">No model selected</option>
-                @for (m of models(); track m.id) {
-                  <option [value]="m.id">{{ m.name }}</option>
+                @for (m of models(); track m.modelId) {
+                  <option [value]="m.modelId">{{ m.modelName }}</option>
                 }
               </select>
             }
@@ -110,8 +110,8 @@ interface AgentFormState {
               class="mt-1.5 w-full resize-y rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-100"
               rows="8"
               placeholder="Describe what this agent does..."
-              [value]="form().context"
-              (input)="patchForm({ context: $any($event.target).value })"
+              [value]="form().description"
+              (input)="patchForm({ description: $any($event.target).value })"
             ></textarea>
           </div>
         </div>
@@ -144,7 +144,7 @@ export class TabGeneralComponent implements OnChanges {
   form = signal<AgentFormState>({
     name: '',
     modelId: null,
-    context: '',
+    description: '',
   });
 
   isValid = computed(() => this.form().name.trim().length > 0);
@@ -155,7 +155,7 @@ export class TabGeneralComponent implements OnChanges {
     return (
       f.name.trim() !== a.name.trim() ||
       (f.modelId ?? null) !== (a.modelId ?? null) ||
-      f.context !== (a.context ?? '')
+      f.description !== (a.description ?? '')
     );
   });
 
@@ -166,7 +166,7 @@ export class TabGeneralComponent implements OnChanges {
       this.form.set({
         name: this.agent().name,
         modelId: this.agent().modelId ?? null,
-        context: this.agent().context ?? '',
+        description: this.agent().description ?? '',
       });
       this.attemptedSubmit.set(false);
     }
@@ -180,7 +180,7 @@ export class TabGeneralComponent implements OnChanges {
     this.form.set({
       name: this.agent().name,
       modelId: this.agent().modelId ?? null,
-      context: this.agent().context ?? '',
+      description: this.agent().description ?? '',
     });
     this.attemptedSubmit.set(false);
   }
@@ -192,8 +192,12 @@ export class TabGeneralComponent implements OnChanges {
     this.updateAgent.emit({
       name: f.name.trim(),
       modelId: f.modelId,
-      context: f.context.trim() || null,
+      description: f.description.trim() || null,
     });
+  }
+
+  toNullableNumber(value: string): number | null {
+    return value ? Number(value) : null;
   }
 
   onConfirmDelete(): void {

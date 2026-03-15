@@ -74,7 +74,7 @@ import { Component, input, output, signal, OnChanges, SimpleChanges } from '@ang
   `,
 })
 export class TabSystemPromptComponent implements OnChanges {
-  agentId      = input.required<number>();
+  agentCode    = input.required<string>();
   prompt       = input<string>('');
   isDirty      = input(false);
   loadingPrompt = input(false);

@@ -49,18 +49,18 @@ import { Agent } from '../../core/models/agent.model';
       <!-- Agent List -->
       <div class="flex-1 min-h-0 overflow-y-auto py-2 px-2 space-y-0.5">
 
-        @for (agent of filteredAgents(); track agent.id) {
+        @for (agent of filteredAgents(); track agent.code) {
           <div
             class="group flex items-center gap-2 px-2 py-1.5 rounded-lg cursor-pointer transition-colors"
             [ngClass]="{
-              'bg-brand-50 dark:bg-brand-950': selectedAgentId() === agent.id && editingId() !== agent.id,
-              'hover:bg-gray-100 dark:hover:bg-gray-700': selectedAgentId() !== agent.id || editingId() === agent.id
+              'bg-brand-50 dark:bg-brand-950': selectedAgentCode() === agent.code && editingId() !== agent.code,
+              'hover:bg-gray-100 dark:hover:bg-gray-700': selectedAgentCode() !== agent.code || editingId() === agent.code
             }"
             (click)="onSelectAgent(agent)"
           >
             <span class="text-base shrink-0">🤖</span>
 
-            @if (editingId() === agent.id) {
+            @if (editingId() === agent.code) {
               <!-- Inline rename input -->
               <input
                 #renameInput
@@ -78,13 +78,13 @@ import { Agent } from '../../core/models/agent.model';
               <!-- Agent name (double-click to rename) -->
               <span
                 class="flex-1 text-sm truncate text-gray-700 dark:text-gray-300"
-                [ngClass]="{ 'font-medium text-brand-700 dark:text-brand-300': selectedAgentId() === agent.id }"
+                [ngClass]="{ 'font-medium text-brand-700 dark:text-brand-300': selectedAgentCode() === agent.code }"
                 title="Double-click to rename"
                 (dblclick)="startEdit(agent, $event)"
               >{{ agent.name }}</span>
 
               <!-- Active indicator -->
-              @if (selectedAgentId() === agent.id) {
+              @if (selectedAgentCode() === agent.code) {
                 <span class="w-1.5 h-1.5 rounded-full bg-brand-500 shrink-0"></span>
               }
             }
@@ -122,14 +122,14 @@ import { Agent } from '../../core/models/agent.model';
 })
 export class AgentSidebarComponent implements AfterViewChecked {
   agents         = input.required<Agent[]>();
-  selectedAgentId = input<number | null>(null);
+  selectedAgentCode = input<string | null>(null);
 
   selectAgent  = output<Agent>();
-  renameAgent  = output<{ id: number; name: string }>();
+  renameAgent  = output<{ code: string; name: string }>();
   createAgent  = output<string>();
 
   /* ── Local edit state ──────────────────────────────────────────── */
-  editingId  = signal<number | null>(null);
+  editingId  = signal<string | null>(null);
   editValue  = signal('');
   renameError = signal(false);
 
@@ -162,14 +162,14 @@ export class AgentSidebarComponent implements AfterViewChecked {
   }
 
   onSelectAgent(agent: Agent): void {
-    if (this.editingId() === agent.id) return;
+    if (this.editingId() === agent.code) return;
     this.selectAgent.emit(agent);
   }
 
   /* ── Rename inline ─────────────────────────────────────────────── */
   startEdit(agent: Agent, event: MouseEvent): void {
     event.stopPropagation();
-    this.editingId.set(agent.id);
+    this.editingId.set(agent.code);
     this.editValue.set(agent.name);
     this.renameError.set(false);
     this._shouldFocusRename = true;
@@ -182,7 +182,7 @@ export class AgentSidebarComponent implements AfterViewChecked {
       return;
     }
     if (name !== agent.name) {
-      this.renameAgent.emit({ id: agent.id, name });
+      this.renameAgent.emit({ code: agent.code, name });
     }
     this.editingId.set(null);
   }

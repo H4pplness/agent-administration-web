@@ -15,7 +15,8 @@ export class NavigationService {
       label: 'Agents',
       icon: 'robot',
       children: [
-        { id: 'agents-list', label: 'Danh mục Agent', icon: 'list', route: '/agents' },
+        { id: 'agents-list', label: 'Danh muc Agent', icon: 'list', route: '/agents' },
+        { id: 'agents-models', label: 'Models', icon: 'database', route: '/agents/models' },
         { id: 'agents-multi', label: 'Multi-agent', icon: 'workflow', route: '/agents/multi' },
       ],
     },
@@ -24,8 +25,8 @@ export class NavigationService {
       label: 'Workflows',
       icon: 'workflow',
       children: [
-        { id: 'workflows-list', label: 'Tất cả Workflows', icon: 'list', route: '/workflows' },
-        { id: 'workflows-create', label: 'Tạo Workflow', icon: 'plus', route: '/workflows/create' },
+        { id: 'workflows-list', label: 'Tat ca Workflows', icon: 'list', route: '/workflows' },
+        { id: 'workflows-create', label: 'Tao Workflow', icon: 'plus', route: '/workflows/create' },
       ],
     },
     {
@@ -33,7 +34,7 @@ export class NavigationService {
       label: 'Knowledge Base',
       icon: 'book',
       children: [
-        { id: 'kb-documents', label: 'Tài liệu', icon: 'document', route: '/knowledge-base/documents' },
+        { id: 'kb-documents', label: 'Tai lieu', icon: 'document', route: '/knowledge-base/documents' },
         { id: 'kb-sources', label: 'Data Sources', icon: 'database', route: '/knowledge-base/sources' },
         { id: 'kb-skills', label: 'Skills', icon: 'key', route: '/knowledge-base/skills' },
       ],
@@ -49,12 +50,12 @@ export class NavigationService {
     },
     {
       id: 'settings',
-      label: 'Cài đặt',
+      label: 'Cai dat',
       icon: 'settings',
       children: [
         { id: 'settings-general', label: 'Chung', icon: 'settings', route: '/settings/general' },
         { id: 'settings-api-keys', label: 'API Keys', icon: 'key', route: '/settings/api-keys' },
-        { id: 'settings-users', label: 'Người dùng', icon: 'users', route: '/settings/users' },
+        { id: 'settings-users', label: 'Nguoi dung', icon: 'users', route: '/settings/users' },
       ],
     },
   ];
@@ -67,6 +68,6 @@ export class NavigationService {
   }
 
   toggleSidebar(): void {
-    this.sidebarCollapsed.update(v => !v);
+    this.sidebarCollapsed.update(value => !value);
   }
 }

@@ -1,10 +1,17 @@
 import {
-  Component, input, output, signal,
-  OnChanges, SimpleChanges, computed,
+  Component, computed, input, OnChanges, output, signal, SimpleChanges,
 } from '@angular/core';
 import { NgTemplateOutlet } from '@angular/common';
 import { Agent } from '../../core/models/agent.model';
-import { Resource, ResourceType, HttpMethod, ParamType, QueryParamDef, HttpSchema, AgentSchema } from '../../core/models/resource.model';
+import {
+  AgentSchema,
+  HttpMethod,
+  HttpSchema,
+  ParamType,
+  QueryParamDef,
+  Resource,
+  ResourceType,
+} from '../../core/models/resource.model';
 import { DeleteConfirmModalComponent } from './delete-confirm-modal.component';
 
 interface FormState {
@@ -12,13 +19,11 @@ interface FormState {
   type: ResourceType;
   name: string;
   description: string;
-  // HTTP
   url: string;
   method: HttpMethod;
   headersText: string;
   queryParams: QueryParamDef[];
-  // Agent
-  targetAgentId: number | null;
+  targetAgentCode: string | null;
   targetAgentName: string;
   capabilities: string;
   taskTypes: string;
@@ -29,44 +34,98 @@ const HTTP_METHODS: HttpMethod[] = ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'];
 function emptyForm(type: ResourceType): FormState {
   return {
     type,
-    name: '', description: '',
-    url: 'https://', method: 'GET', headersText: '', queryParams: [],
-    targetAgentId: null, targetAgentName: '', capabilities: '', taskTypes: '',
+    name: '',
+    description: '',
+    url: 'https://',
+    method: 'GET',
+    headersText: '',
+    queryParams: [],
+    targetAgentCode: null,
+    targetAgentName: '',
+    capabilities: '',
+    taskTypes: '',
   };
 }
 
-function resourceToForm(r: Resource): FormState {
-  const s = r.schema;
-  if (r.type === 'http') {
-    const hs = s as HttpSchema;
-    const headersText = Object.entries(hs.headers ?? {}).map(([k, v]) => `${k}: ${v}`).join('\n');
-    const queryParams: QueryParamDef[] = Object.entries(hs.queryParams ?? {}).map(
+function resourceToForm(resource: Resource): FormState {
+  if (resource.type === 'http') {
+    const schema = resource.schema as HttpSchema;
+    const headersText = Object.entries(schema.headers ?? {})
+      .map(([key, value]) => `${key}: ${value}`)
+      .join('\n');
+    const queryParams: QueryParamDef[] = Object.entries(schema.queryParams ?? {}).map(
       ([name, def]) => ({ name, type: def.type as ParamType, description: def.description })
     );
-    return { id: r.id, type: 'http', name: r.name, description: r.description ?? '', url: hs.url, method: hs.method, headersText, queryParams, targetAgentId: null, targetAgentName: '', capabilities: '', taskTypes: '' };
-  } else {
-    const as_ = s as AgentSchema;
-    return { id: r.id, type: 'agent', name: r.name, description: r.description ?? '', url: '', method: 'GET', headersText: '', queryParams: [], targetAgentId: as_.targetAgentId, targetAgentName: as_.targetAgentName, capabilities: as_.capabilities ?? '', taskTypes: (as_.taskTypes ?? []).join(', ') };
+
+    return {
+      id: resource.id,
+      type: 'http',
+      name: resource.name,
+      description: resource.description ?? '',
+      url: schema.url,
+      method: schema.method,
+      headersText,
+      queryParams,
+      targetAgentCode: null,
+      targetAgentName: '',
+      capabilities: '',
+      taskTypes: '',
+    };
   }
+
+  const schema = resource.schema as AgentSchema;
+  return {
+    id: resource.id,
+    type: 'agent',
+    name: resource.name,
+    description: resource.description ?? '',
+    url: '',
+    method: 'GET',
+    headersText: '',
+    queryParams: [],
+    targetAgentCode: schema.targetAgentCode,
+    targetAgentName: schema.targetAgentName,
+    capabilities: schema.capabilities ?? '',
+    taskTypes: (schema.taskTypes ?? []).join(', '),
+  };
 }
 
-function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
-  if (f.type === 'http') {
+function formToResource(form: FormState, agentCode: string): Omit<Resource, 'id'> {
+  if (form.type === 'http') {
     const headers: Record<string, string> = {};
-    f.headersText.split('\n').forEach(line => {
+    form.headersText.split('\n').forEach(line => {
       const idx = line.indexOf(':');
       if (idx > 0) {
         headers[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
       }
     });
+
     const queryParams: Record<string, { type: string; description?: string }> = {};
-    f.queryParams.forEach(p => {
-      queryParams[p.name] = { type: p.type, description: p.description };
+    form.queryParams.forEach(param => {
+      queryParams[param.name] = { type: param.type, description: param.description };
     });
-    return { agentId, type: 'http', name: f.name, description: f.description, schema: { url: f.url, method: f.method, headers, queryParams } };
-  } else {
-    return { agentId, type: 'agent', name: f.name, description: f.description, schema: { targetAgentId: f.targetAgentId!, targetAgentName: f.targetAgentName, capabilities: f.capabilities, taskTypes: f.taskTypes.split(',').map(t => t.trim()).filter(Boolean) } };
+
+    return {
+      agentId: agentCode,
+      type: 'http',
+      name: form.name,
+      description: form.description,
+      schema: { url: form.url, method: form.method, headers, queryParams },
+    };
   }
+
+  return {
+    agentId: agentCode,
+    type: 'agent',
+    name: form.name,
+    description: form.description,
+    schema: {
+      targetAgentCode: form.targetAgentCode!,
+      targetAgentName: form.targetAgentName,
+      capabilities: form.capabilities,
+      taskTypes: form.taskTypes.split(',').map(item => item.trim()).filter(Boolean),
+    },
+  };
 }
 
 @Component({
@@ -78,12 +137,10 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
   },
   template: `
     <div class="h-full min-h-0 overflow-y-auto p-6 space-y-6">
-
-      <!-- ── HTTP Resources ─────────────────────────────────────── -->
       <section class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-2">
-            <span class="text-base">🌐</span>
+            <span class="text-base">API</span>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">HTTP Resources</span>
           </div>
           <button
@@ -138,11 +195,10 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
         </div>
       </section>
 
-      <!-- ── Agent Resources ────────────────────────────────────── -->
       <section class="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         <div class="flex items-center justify-between px-4 py-3 bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
           <div class="flex items-center gap-2">
-            <span class="text-base">🤖</span>
+            <span class="text-base">AG</span>
             <span class="text-sm font-semibold text-gray-700 dark:text-gray-300">Agent Resources</span>
           </div>
           <button
@@ -170,7 +226,7 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
               >
                 <span class="w-2 h-2 rounded-full bg-purple-400 shrink-0"></span>
                 <span class="font-medium text-sm text-gray-800 dark:text-gray-200 flex-1">{{ r.name }}</span>
-                <span class="text-xs text-gray-400">Agent ID: {{ agentSchema(r).targetAgentId }}</span>
+                <span class="text-xs text-gray-400">Agent: {{ agentSchema(r).targetAgentCode }}</span>
                 <span class="text-xs text-gray-400 truncate max-w-[160px]">{{ agentTaskTypes(r) }}</span>
                 <button
                   class="opacity-0 group-hover:opacity-100 ml-2 p-1 text-gray-400 hover:text-red-500 transition-all"
@@ -196,14 +252,10 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
           }
         </div>
       </section>
-
     </div>
 
-    <!-- ── Inline form template ─────────────────────────────────── -->
     <ng-template #formTemplate let-type>
       <div class="space-y-4">
-
-        <!-- Name + Description row -->
         <div class="grid grid-cols-2 gap-3">
           <div>
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Name *</label>
@@ -236,7 +288,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
         </div>
 
         @if (type === 'http') {
-          <!-- URL + Method row -->
           <div class="grid grid-cols-3 gap-3">
             <div class="col-span-2">
               <label class="text-xs font-medium text-gray-500 dark:text-gray-400">URL *</label>
@@ -269,7 +320,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
             </div>
           </div>
 
-          <!-- Headers -->
           <div>
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Headers (key: value per line)</label>
             <textarea
@@ -281,7 +331,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
             ></textarea>
           </div>
 
-          <!-- Query Params -->
           <div>
             <div class="flex items-center justify-between mb-2">
               <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Query Params</label>
@@ -336,7 +385,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
         }
 
         @if (type === 'agent') {
-          <!-- Target Agent -->
           <div>
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Target Agent *</label>
             <select
@@ -345,12 +393,12 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
               [class.border-gray-300]="!form().targetError"
               [class.focus:ring-brand-500]="!form().targetError"
               [class.focus:ring-red-400]="form().targetError"
-              [value]="form().targetAgentId ?? ''"
+              [value]="form().targetAgentCode ?? ''"
               (change)="onTargetAgentChange($any($event.target).value)"
             >
               <option value="">-- Select agent --</option>
-              @for (a of otherAgents(); track a.id) {
-                <option [value]="a.id">{{ a.name }} (ID: {{ a.id }})</option>
+              @for (a of otherAgents(); track a.code) {
+                <option [value]="a.code">{{ a.name }} ({{ a.code }})</option>
               }
             </select>
             @if (form().targetError) {
@@ -358,7 +406,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
             }
           </div>
 
-          <!-- Capabilities -->
           <div>
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Capabilities</label>
             <textarea
@@ -370,7 +417,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
             ></textarea>
           </div>
 
-          <!-- Task Types -->
           <div>
             <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Task Types (comma separated)</label>
             <input
@@ -383,7 +429,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
           </div>
         }
 
-        <!-- Action buttons -->
         <div class="flex justify-end gap-2 pt-2 border-t border-gray-100 dark:border-gray-700">
           <button
             class="px-3 py-1.5 text-xs font-medium text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -412,7 +457,6 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
       </div>
     </ng-template>
 
-    <!-- Delete Confirm Modal -->
     @if (deleteTarget()) {
       <app-delete-confirm-modal
         [title]="'Delete Resource'"
@@ -425,58 +469,66 @@ function formToResource(f: FormState, agentId: number): Omit<Resource, 'id'> {
   `,
 })
 export class TabResourcesComponent implements OnChanges {
-  currentAgentId = input.required<number>();
-  resources      = input<Resource[]>([]);
-  allAgents      = input<Agent[]>([]);
+  currentAgentCode = input.required<string>();
+  resources = input<Resource[]>([]);
+  allAgents = input<Agent[]>([]);
 
   createResource = output<Omit<Resource, 'id'>>();
   updateResource = output<{ id: number; data: Partial<Resource> }>();
   deleteResource = output<number>();
 
-  /* ── Derived ───────────────────────────────────────────────────── */
-  httpResources  = computed(() => this.resources().filter(r => r.type === 'http'));
-  agentResources = computed(() => this.resources().filter(r => r.type === 'agent'));
-  otherAgents    = computed(() => this.allAgents().filter(a => a.id !== this.currentAgentId()));
+  httpResources = computed(() => this.resources().filter(resource => resource.type === 'http'));
+  agentResources = computed(() => this.resources().filter(resource => resource.type === 'agent'));
+  otherAgents = computed(() => this.allAgents().filter(agent => agent.code !== this.currentAgentCode()));
 
-  /* ── Form state ────────────────────────────────────────────────── */
-  editingId  = signal<number | null>(null);
+  editingId = signal<number | null>(null);
   addingType = signal<ResourceType | null>(null);
-  saving     = signal(false);
+  saving = signal(false);
   deleteTarget = signal<Resource | null>(null);
 
-  private _formState = signal<FormState & { nameError?: boolean; urlError?: boolean; targetError?: boolean }>(emptyForm('http'));
+  private readonly _formState = signal<FormState & {
+    nameError?: boolean;
+    urlError?: boolean;
+    targetError?: boolean;
+  }>(emptyForm('http'));
 
   form = this._formState.asReadonly();
-
   readonly httpMethods = HTTP_METHODS;
 
   ngOnChanges(changes: SimpleChanges): void {
-    if (changes['currentAgentId']) {
+    if (changes['currentAgentCode']) {
       this.cancelForm();
     }
   }
 
   patchForm(patch: Partial<FormState & { nameError?: boolean; urlError?: boolean; targetError?: boolean }>): void {
-    this._formState.update(f => ({ ...f, ...patch }));
+    this._formState.update(form => ({ ...form, ...patch }));
   }
 
-  /* ── HTTP helpers ──────────────────────────────────────────────── */
-  httpSchema(r: Resource): HttpSchema { return r.schema as HttpSchema; }
-  agentSchema(r: Resource): AgentSchema { return r.schema as AgentSchema; }
-
-  httpDomain(r: Resource): string {
-    try { return new URL((r.schema as HttpSchema).url).hostname; } catch { return (r.schema as HttpSchema).url; }
+  httpSchema(resource: Resource): HttpSchema {
+    return resource.schema as HttpSchema;
   }
 
-  agentTaskTypes(r: Resource): string {
-    return ((r.schema as AgentSchema).taskTypes ?? []).join(', ');
+  agentSchema(resource: Resource): AgentSchema {
+    return resource.schema as AgentSchema;
   }
 
-  /* ── Edit ──────────────────────────────────────────────────────── */
-  startEdit(r: Resource): void {
+  httpDomain(resource: Resource): string {
+    try {
+      return new URL((resource.schema as HttpSchema).url).hostname;
+    } catch {
+      return (resource.schema as HttpSchema).url;
+    }
+  }
+
+  agentTaskTypes(resource: Resource): string {
+    return ((resource.schema as AgentSchema).taskTypes ?? []).join(', ');
+  }
+
+  startEdit(resource: Resource): void {
     this.addingType.set(null);
-    this.editingId.set(r.id);
-    this._formState.set({ ...resourceToForm(r), nameError: false, urlError: false, targetError: false });
+    this.editingId.set(resource.id);
+    this._formState.set({ ...resourceToForm(resource), nameError: false, urlError: false, targetError: false });
   }
 
   startAdd(type: ResourceType): void {
@@ -491,65 +543,77 @@ export class TabResourcesComponent implements OnChanges {
     this.saving.set(false);
   }
 
-  /* ── Query params ──────────────────────────────────────────────── */
   addQueryParam(): void {
     this.patchForm({ queryParams: [...this.form().queryParams, { name: '', type: 'string' }] });
   }
 
-  removeQueryParam(i: number): void {
-    const params = [...this.form().queryParams];
-    params.splice(i, 1);
-    this.patchForm({ queryParams: params });
+  removeQueryParam(index: number): void {
+    const queryParams = [...this.form().queryParams];
+    queryParams.splice(index, 1);
+    this.patchForm({ queryParams });
   }
 
-  updateQueryParam(i: number, field: 'name' | 'type', value: string): void {
-    const params = this.form().queryParams.map((p, idx) =>
-      idx === i ? { ...p, [field]: value } : p
-    );
-    this.patchForm({ queryParams: params });
+  updateQueryParam(index: number, field: 'name' | 'type', value: string): void {
+    this.patchForm({
+      queryParams: this.form().queryParams.map((param, paramIndex) =>
+        (paramIndex === index ? { ...param, [field]: value } : param)
+      ),
+    });
   }
 
   onTargetAgentChange(value: string): void {
-    const id = Number(value);
-    const agent = this.allAgents().find(a => a.id === id);
-    this.patchForm({ targetAgentId: id || null, targetAgentName: agent?.name ?? '', targetError: false });
+    const agent = this.allAgents().find(item => item.code === value);
+    this.patchForm({
+      targetAgentCode: value || null,
+      targetAgentName: agent?.name ?? '',
+      targetError: false,
+    });
   }
 
-  /* ── Submit ────────────────────────────────────────────────────── */
   submitForm(): void {
-    const f = this.form();
+    const form = this.form();
     let valid = true;
 
-    if (!f.name.trim()) { this.patchForm({ nameError: true }); valid = false; }
+    if (!form.name.trim()) {
+      this.patchForm({ nameError: true });
+      valid = false;
+    }
 
-    if (f.type === 'http') {
-      if (!f.url.match(/^https?:\/\/.+/)) { this.patchForm({ urlError: true }); valid = false; }
-    } else {
-      if (!f.targetAgentId) { this.patchForm({ targetError: true }); valid = false; }
+    if (form.type === 'http') {
+      if (!form.url.match(/^https?:\/\/.+/)) {
+        this.patchForm({ urlError: true });
+        valid = false;
+      }
+    } else if (!form.targetAgentCode) {
+      this.patchForm({ targetError: true });
+      valid = false;
     }
 
     if (!valid) return;
 
     this.saving.set(true);
-    const resourceData = formToResource(f, this.currentAgentId());
+    const resourceData = formToResource(form, this.currentAgentCode());
 
     if (this.editingId() !== null) {
       this.updateResource.emit({ id: this.editingId()!, data: resourceData });
     } else {
       this.createResource.emit(resourceData);
     }
-    setTimeout(() => { this.saving.set(false); this.cancelForm(); }, 400);
+
+    setTimeout(() => {
+      this.saving.set(false);
+      this.cancelForm();
+    }, 400);
   }
 
-  /* ── Delete ────────────────────────────────────────────────────── */
-  confirmDelete(r: Resource): void {
-    this.deleteTarget.set(r);
+  confirmDelete(resource: Resource): void {
+    this.deleteTarget.set(resource);
   }
 
   onConfirmDelete(): void {
-    const r = this.deleteTarget();
-    if (r) this.deleteResource.emit(r.id);
+    const resource = this.deleteTarget();
+    if (resource) this.deleteResource.emit(resource.id);
     this.deleteTarget.set(null);
-    if (this.editingId() === r?.id) this.cancelForm();
+    if (this.editingId() === resource?.id) this.cancelForm();
   }
 }

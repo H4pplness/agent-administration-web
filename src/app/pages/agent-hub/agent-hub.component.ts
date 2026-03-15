@@ -21,7 +21,7 @@ import { ToastContainerComponent } from '../../shared/components/atoms/toast/toa
       <!-- Left Sidebar: Agent List -->
       <app-agent-sidebar
         [agents]="agents()"
-        [selectedAgentId]="selectedAgent()?.id ?? null"
+        [selectedAgentCode]="selectedAgent()?.code ?? null"
         (selectAgent)="selectAgent($event)"
         (renameAgent)="renameAgent($event)"
         (createAgent)="createAgent($event)"
@@ -130,8 +130,8 @@ export class AgentHubComponent implements OnInit {
     });
   }
 
-  private loadResources(agentId: number): void {
-    this.resourceSvc.getByAgent(agentId).subscribe({
+  private loadResources(agentCode: string): void {
+    this.resourceSvc.getByAgent(agentCode).subscribe({
       next: grouped => {
         const all: Resource[] = Object.values(grouped).flat();
         this.resources.set(all);
@@ -140,9 +140,9 @@ export class AgentHubComponent implements OnInit {
     });
   }
 
-  private loadPrompt(agentId: number): void {
+  private loadPrompt(agentCode: string): void {
     this.loadingPrompt.set(true);
-    this.resourceSvc.getPrompt(agentId).subscribe({
+    this.resourceSvc.getPrompt(agentCode).subscribe({
       next: r => { this.systemPrompt.set(r.prompt); this.loadingPrompt.set(false); },
       error: () => this.loadingPrompt.set(false),
     });
@@ -153,21 +153,21 @@ export class AgentHubComponent implements OnInit {
     this.resourcesDirty.set(false);
     this.resources.set([]);
     this.systemPrompt.set('');
-    this.loadResources(agent.id);
-    this.loadPrompt(agent.id);
+    this.loadResources(agent.code);
+    this.loadPrompt(agent.code);
   }
 
   /* ── Agent actions ─────────────────────────────────────────────── */
   selectAgent(agent: Agent): void {
-    if (this.selectedAgent()?.id === agent.id) return;
+    if (this.selectedAgent()?.code === agent.code) return;
     this.doSelectAgent(agent);
   }
 
-  renameAgent(ev: { id: number; name: string }): void {
-    this.agentSvc.updateAgent(ev.id, { name: ev.name }).subscribe({
+  renameAgent(ev: { code: string; name: string }): void {
+    this.agentSvc.updateAgent(ev.code, { name: ev.name }).subscribe({
       next: updated => {
-        this.agents.update(list => list.map(a => (a.id === updated.id ? updated : a)));
-        if (this.selectedAgent()?.id === updated.id) {
+        this.agents.update(list => list.map(a => (a.code === updated.code ? updated : a)));
+        if (this.selectedAgent()?.code === updated.code) {
           this.selectedAgent.set(updated);
         }
         this.toastSvc.success('Agent renamed');
@@ -191,9 +191,9 @@ export class AgentHubComponent implements OnInit {
     const agent = this.selectedAgent();
     if (!agent) return;
     this.savingAgent.set(true);
-    this.agentSvc.updateAgent(agent.id, data).subscribe({
+    this.agentSvc.updateAgent(agent.code, data).subscribe({
       next: updated => {
-        this.agents.update(list => list.map(a => (a.id === updated.id ? updated : a)));
+        this.agents.update(list => list.map(a => (a.code === updated.code ? updated : a)));
         this.selectedAgent.set(updated);
         this.savingAgent.set(false);
         this.toastSvc.success('Saved');
@@ -208,9 +208,9 @@ export class AgentHubComponent implements OnInit {
   deleteAgent(): void {
     const agent = this.selectedAgent();
     if (!agent) return;
-    this.agentSvc.deleteAgent(agent.id).subscribe({
+    this.agentSvc.deleteAgent(agent.code).subscribe({
       next: () => {
-        const remaining = this.agents().filter(a => a.id !== agent.id);
+        const remaining = this.agents().filter(a => a.code !== agent.code);
         this.agents.set(remaining);
         if (remaining.length > 0) {
           this.doSelectAgent(remaining[0]);
@@ -263,7 +263,7 @@ export class AgentHubComponent implements OnInit {
   rebuildPrompt(): void {
     const agent = this.selectedAgent();
     if (!agent) return;
-    this.resourceSvc.savePrompt(agent.id).subscribe({
+    this.resourceSvc.savePrompt(agent.code).subscribe({
       next: r => {
         this.systemPrompt.set(r.prompt);
         this.resourcesDirty.set(false);

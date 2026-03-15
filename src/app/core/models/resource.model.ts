@@ -16,7 +16,7 @@ export interface HttpSchema {
 }
 
 export interface AgentSchema {
-  targetAgentId: number;
+  targetAgentCode: string;
   targetAgentName: string;
   capabilities?: string;
   taskTypes?: string[];
@@ -24,7 +24,7 @@ export interface AgentSchema {
 
 export interface Resource {
   id: number;
-  agentId: number;
+  agentId: string;
   name: string;
   type: ResourceType;
   description?: string;

@@ -1,27 +1,33 @@
 export interface Agent {
-  id: number;
+  code: string;
   name: string;
-  modelId: string | null;
-  context: string | null;
+  description: string | null;
   systemPrompt: string | null;
+  modelId: number | null;
 }
 
 export interface AgentModel {
-  id: string;
-  name: string;
+  modelId: number;
+  modelName: string;
+  apiKey: string;
+  urlGateway: string;
 }
 
 export interface ChatMessage {
   id: number;
   role: 'user' | 'assistant';
   content: string;
+  messageId?: string;
+  createdDate?: string;
   isToolCall?: boolean;
   toolName?: string;
 }
 
 export interface ChatRequest {
-  agentId: number;
+  agentCode: string;
   conversationId?: string;
+  messageId?: string;
+  userId?: string;
   messages: { role: string; content: string }[];
 }
 

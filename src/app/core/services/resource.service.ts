@@ -7,7 +7,7 @@ let _nextId = 4;
 let _resources: Resource[] = [
   {
     id: 1,
-    agentId: 1,
+    agentId: 'customer-support-agent',
     name: 'Weather API',
     type: 'http',
     description: 'Get current weather data',
@@ -23,7 +23,7 @@ let _resources: Resource[] = [
   },
   {
     id: 2,
-    agentId: 1,
+    agentId: 'customer-support-agent',
     name: 'Payment Gateway',
     type: 'http',
     description: 'Process payments via Stripe',
@@ -36,12 +36,12 @@ let _resources: Resource[] = [
   },
   {
     id: 3,
-    agentId: 1,
+    agentId: 'customer-support-agent',
     name: 'Data Analyst',
     type: 'agent',
     description: 'Delegate data analysis tasks',
     schema: {
-      targetAgentId: 3,
+      targetAgentCode: 'data-analyst',
       targetAgentName: 'Data Analyst',
       capabilities: 'Performs statistical analysis and data insights',
       taskTypes: ['analysis', 'reporting', 'data_processing'],
@@ -51,7 +51,7 @@ let _resources: Resource[] = [
 
 @Injectable({ providedIn: 'root' })
 export class ResourceService {
-  getByAgent(agentId: number): Observable<Record<string, Resource[]>> {
+  getByAgent(agentId: string): Observable<Record<string, Resource[]>> {
     const items = _resources.filter(r => r.agentId === agentId).map(r => ({ ...r }));
     const grouped: Record<string, Resource[]> = {};
     for (const r of items) {
@@ -78,7 +78,7 @@ export class ResourceService {
     return of(undefined).pipe(delay(300));
   }
 
-  getPrompt(agentId: number): Observable<{ prompt: string }> {
+  getPrompt(agentId: string): Observable<{ prompt: string }> {
     const resources = _resources.filter(r => r.agentId === agentId);
     const sections = resources
       .map(r => `### ${r.name}\n${r.description ?? ''}`)
@@ -87,7 +87,7 @@ export class ResourceService {
     return of({ prompt }).pipe(delay(300));
   }
 
-  savePrompt(agentId: number): Observable<{ prompt: string }> {
+  savePrompt(agentId: string): Observable<{ prompt: string }> {
     const resources = _resources.filter(r => r.agentId === agentId);
     const sections = resources
       .map(r => `### Tool: ${r.name}\n${r.description ?? ''}\n\nUse this tool for relevant tasks.`)

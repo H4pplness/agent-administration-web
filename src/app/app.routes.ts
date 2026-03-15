@@ -23,6 +23,11 @@ export const routes: Routes = [
         loadComponent: () =>
           import('./pages/coming-soon/coming-soon.component').then(m => m.ComingSoonComponent),
       },
+      {
+        path: 'agents/models',
+        loadComponent: () =>
+          import('./pages/models/models.component').then(m => m.ModelsComponent),
+      },
       // Workflows
       {
         path: 'workflows',

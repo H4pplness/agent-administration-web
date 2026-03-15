@@ -75,7 +75,7 @@ const TABS: TabDef[] = [
 
           @case ('tools') {
             <app-tab-resources
-              [currentAgentId]="agent().id"
+              [currentAgentCode]="agent().code"
               [resources]="resources()"
               [allAgents]="allAgents()"
               (createResource)="onCreate($event)"
@@ -86,7 +86,7 @@ const TABS: TabDef[] = [
 
           @case ('prompt') {
             <app-tab-system-prompt
-              [agentId]="agent().id"
+              [agentCode]="agent().code"
               [prompt]="systemPrompt()"
               [isDirty]="isDirty()"
               [loadingPrompt]="loadingPrompt()"
@@ -95,7 +95,7 @@ const TABS: TabDef[] = [
           }
 
           @case ('chat') {
-            <app-tab-chat [agentId]="agent().id" />
+            <app-tab-chat [agentCode]="agent().code" />
           }
 
         }

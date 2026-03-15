@@ -1,87 +1,105 @@
-import { Injectable } from '@angular/core';
-import { Observable, of, throwError } from 'rxjs';
-import { delay } from 'rxjs/operators';
+import { HttpClient } from '@angular/common/http';
+import { Injectable, inject } from '@angular/core';
+import { map, Observable } from 'rxjs';
 import { Agent, AgentModel, ChatRequest, ChatResponse } from '../models/agent.model';
+import { API_BASE_URL } from '../config/api.config';
 
-const MOCK_MODELS: AgentModel[] = [
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6' },
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6' },
-  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5' },
-];
+interface AgentPayload {
+  code: string;
+  name: string;
+  description: string | null;
+  systemPrompt: string | null;
+  modelId: number | null;
+}
 
-let _nextId = 4;
-let _agents: Agent[] = [
-  {
-    id: 1,
-    name: 'Customer Support Agent',
-    modelId: 'claude-sonnet-4-6',
-    context: 'You are a helpful customer support agent for Acme Corp. You help users with order tracking, returns, and product info.',
-    systemPrompt: null,
-  },
-  {
-    id: 2,
-    name: 'Sales Assistant',
-    modelId: 'claude-haiku-4-5',
-    context: 'You help customers choose the right products and process orders efficiently.',
-    systemPrompt: null,
-  },
-  {
-    id: 3,
-    name: 'Data Analyst',
-    modelId: 'claude-opus-4-6',
-    context: 'You analyze data and provide statistical insights and visualizations.',
-    systemPrompt: null,
-  },
-];
+interface ModelPayload {
+  modelName: string;
+  apiKey: string;
+  urlGateway: string;
+}
 
 @Injectable({ providedIn: 'root' })
 export class AgentService {
+  private readonly http = inject(HttpClient);
+  private readonly apiBase = API_BASE_URL;
+
   getAgents(): Observable<Agent[]> {
-    return of(_agents.map(a => ({ ...a }))).pipe(delay(200));
+    return this.http.get<Agent[]>(`${this.apiBase}/agents`);
   }
 
-  getAgent(id: number): Observable<Agent> {
-    const agent = _agents.find(a => a.id === id);
-    if (!agent) return throwError(() => new Error('Agent not found'));
-    return of({ ...agent }).pipe(delay(200));
+  getAgent(code: string): Observable<Agent> {
+    return this.http.get<Agent>(`${this.apiBase}/agents/${encodeURIComponent(code)}`);
   }
 
-  createAgent(data: { name: string; modelId?: string | null }): Observable<Agent> {
-    const agent: Agent = {
-      id: _nextId++,
-      name: data.name,
-      modelId: data.modelId ?? null,
-      context: null,
+  createAgent(data: { name: string; modelId?: number | null }): Observable<Agent> {
+    const payload: AgentPayload = {
+      code: this.generateCode(data.name),
+      name: data.name.trim(),
+      description: null,
       systemPrompt: null,
+      modelId: data.modelId ?? null,
     };
-    _agents = [..._agents, agent];
-    return of({ ...agent }).pipe(delay(300));
+    return this.http.post<Agent>(`${this.apiBase}/agents`, payload);
   }
 
-  updateAgent(id: number, data: Partial<Agent>): Observable<Agent> {
-    _agents = _agents.map(a => (a.id === id ? { ...a, ...data } : a));
-    const updated = _agents.find(a => a.id === id);
-    if (!updated) return throwError(() => new Error('Agent not found'));
-    return of({ ...updated }).pipe(delay(300));
+  updateAgent(code: string, data: Partial<Agent>): Observable<Agent> {
+    const payload: Partial<AgentPayload> = {};
+
+    if (data.name !== undefined) payload.name = data.name.trim();
+    if (data.description !== undefined) payload.description = data.description?.trim() || null;
+    if (data.systemPrompt !== undefined) payload.systemPrompt = data.systemPrompt?.trim() || null;
+    if (data.modelId !== undefined) payload.modelId = data.modelId ?? null;
+
+    return this.http.put<Agent>(`${this.apiBase}/agents/${encodeURIComponent(code)}`, payload);
   }
 
-  deleteAgent(id: number): Observable<void> {
-    _agents = _agents.filter(a => a.id !== id);
-    return of(undefined).pipe(delay(300));
+  deleteAgent(code: string): Observable<void> {
+    return this.http.delete<void>(`${this.apiBase}/agents/${encodeURIComponent(code)}`);
   }
 
   getModels(): Observable<AgentModel[]> {
-    return of([...MOCK_MODELS]).pipe(delay(200));
+    return this.http.get<AgentModel[]>(`${this.apiBase}/models`);
+  }
+
+  getModel(modelId: number): Observable<AgentModel> {
+    return this.http.get<AgentModel>(`${this.apiBase}/models/${modelId}`);
+  }
+
+  createModel(data: ModelPayload): Observable<AgentModel> {
+    return this.http.post<AgentModel>(`${this.apiBase}/models`, data);
+  }
+
+  updateModel(modelId: number, data: ModelPayload): Observable<AgentModel> {
+    return this.http.put<AgentModel>(`${this.apiBase}/models/${modelId}`, data);
+  }
+
+  deleteModel(modelId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiBase}/models/${modelId}`);
   }
 
   chat(req: ChatRequest): Observable<ChatResponse> {
-    const lastMsg = req.messages[req.messages.length - 1]?.content ?? '';
-    const convId = req.conversationId ?? String(Date.now());
-    const response: ChatResponse = {
-      response: `I received your message: "${lastMsg}". This is a mock response from the agent. In a real deployment, I would call the Claude API and return an intelligent response.`,
-      conversationId: convId,
-      metadata: {},
-    };
-    return of(response).pipe(delay(1200));
+    return this.http
+      .post(`${this.apiBase}/agents/chat`, req, { responseType: 'text' })
+      .pipe(
+        map(response => ({
+          response,
+          conversationId: req.conversationId ?? '',
+          metadata: {},
+        }))
+      );
+  }
+
+  private generateCode(name: string): string {
+    const base = name
+      .trim()
+      .toLowerCase()
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 40);
+
+    const suffix = Date.now().toString(36).slice(-6);
+    return `${base || 'agent'}-${suffix}`;
   }
 }
